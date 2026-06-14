@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reddit Lullaby - AI Narrator & Sleep Aid</title>
+  <meta name="description" content="Listen to popular, soothing Reddit stories read out loud with customized AI voices, ambient soundscapes, and automatic sleep timers.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+
+  <!-- Twinkling Starry Background -->
+  <div class="stars-container">
+    <div class="stars stars-small"></div>
+    <div class="stars stars-medium"></div>
+    <div class="stars stars-large"></div>
+    <div class="shooting-stars"></div>
+    <div class="aurora-glow"></div>
+  </div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" fill="url(#moon-gradient)"/>
+          <defs>
+            <linearGradient id="moon-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ffe66d" />
+              <stop offset="100%" stop-color="#ff9233" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="brand">
+          <h1>Reddit Lullaby</h1>
+          <span class="tagline">Restful Narrations for Peaceful Sleep</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="import-btn" class="icon-btn btn-secondary" title="Import Custom Story">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          <span>Import</span>
+        </button>
+        <button id="settings-toggle-btn" class="icon-btn btn-secondary" title="Audio Settings">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace Layout -->
+    <main class="app-main">
+      
+      <!-- Left Column: Story Library -->
+      <section class="panel stories-panel">
+        <h2 class="panel-title">Explore Stories</h2>
+        
+        <!-- Subreddit/Category Filter -->
+        <div class="category-filters">
+          <button class="filter-btn active" data-category="all">All</button>
+          <button class="filter-btn" data-subreddit="r/AskReddit">r/AskReddit</button>
+          <button class="filter-btn" data-subreddit="r/nosleep">r/nosleep</button>
+          <button class="filter-btn" data-subreddit="r/showerthoughts">r/showerthoughts</button>
+          <button class="filter-btn" data-subreddit="r/explainlikeimfive">r/ELI5</button>
+          <button class="filter-btn" data-subreddit="r/todayilearned">r/TIL</button>
+        </div>
+
+        <!-- Stories List Grid -->
+        <div id="stories-list" class="stories-grid">
+          <!-- Populated by stories.js / app.js -->
+        </div>
+      </section>
+
+      <!-- Center/Right Column: Main Sleep Player & Settings -->
+      <section class="panel player-panel">
+        
+        <!-- Active Story Details -->
+        <div class="active-story-header">
+          <div class="sub-badge" id="player-subreddit">r/AskReddit</div>
+          <h2 id="player-title" class="player-story-title">Select a story to begin your journey</h2>
+          <div class="player-author-meta" id="player-meta">By starlight_traveler • 5 min read</div>
+        </div>
+
+        <!-- Cozy Visualizer Wave -->
+        <div class="visualizer-container">
+          <div class="visualizer-overlay"></div>
+          <div class="wave-bar" id="wave-1"></div>
+          <div class="wave-bar" id="wave-2"></div>
+          <div class="wave-bar" id="wave-3"></div>
+          <div class="wave-bar" id="wave-4"></div>
+          <div class="wave-bar" id="wave-5"></div>
+          <div class="wave-bar" id="wave-6"></div>
+          <div class="wave-bar" id="wave-7"></div>
+          <div class="wave-bar" id="wave-8"></div>
+          <div class="wave-bar" id="wave-9"></div>
+          <div class="wave-bar" id="wave-10"></div>
+        </div>
+
+        <!-- Live Reading Highlight Board -->
+        <div class="reader-viewport" id="reader-viewport">
+          <div class="reader-placeholder">Your story text will flow here. Sit back, close your eyes, and relax.</div>
+        </div>
+
+        <!-- Main Player Controls Interface -->
+        <div class="player-controls-row">
+          <!-- Progress Ring & Timer Indicator -->
+          <div class="timer-display-widget">
+            <svg class="progress-ring" width="80" height="80">
+              <circle class="progress-ring__circle-bg" stroke="rgba(255,255,255,0.05)" stroke-width="4" fill="transparent" r="34" cx="40" cy="40"/>
+              <circle id="timer-progress-bar" class="progress-ring__circle" stroke="#cca43b" stroke-width="4" fill="transparent" r="34" cx="40" cy="40"/>
+            </svg>
+            <div id="timer-countdown" class="timer-countdown-text">Off</div>
+          </div>
+
+          <!-- Media Buttons -->
+          <div class="media-buttons">
+            <button id="prev-btn" class="control-btn circle-btn" title="Previous Sentence">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                <polygon points="19 20 9 12 19 4 19 20"/>
+                <line x1="5" y1="4" x2="5" y2="20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <button id="play-btn" class="control-btn circle-btn main-play-btn" title="Play">
+              <svg id="play-icon" viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+            </button>
+            <button id="stop-btn" class="control-btn circle-btn" title="Stop">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                <rect x="4" y="4" width="16" height="16" rx="2"/>
+              </svg>
+            </button>
+            <button id="next-btn" class="control-btn circle-btn" title="Next Sentence">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                <polygon points="5 4 15 12 5 20 5 4"/>
+                <line x1="19" y1="4" x2="19" y2="20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Sleep Timer Preset Selector -->
+          <div class="sleep-timer-widget">
+            <span class="widget-label">Sleep Timer</span>
+            <div class="timer-presets">
+              <button class="preset-btn active" data-time="0">Off</button>
+              <button class="preset-btn" data-time="5">5m</button>
+              <button class="preset-btn" data-time="15">15m</button>
+              <button class="preset-btn" data-time="30">30m</button>
+              <button class="preset-btn" data-time="45">45m</button>
+              <button class="preset-btn" data-time="60">60m</button>
+              <button class="preset-btn custom-preset-trigger" id="custom-timer-btn">Custom</button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Slid-up Audio and Ambient Settings Drawer (Collapsible) -->
+    <div id="settings-drawer" class="settings-drawer collapsed">
+      <div class="drawer-header">
+        <h3>Cosmic Mixer & Speech Settings</h3>
+        <button id="close-drawer-btn" class="icon-btn" title="Close Panel">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="drawer-grid">
+        
+        <!-- Column 1: AI Narrator Voice Controls -->
+        <div class="drawer-section voice-section">
+          <h4>AI Narrator Options</h4>
+          
+          <div class="control-group">
+            <label for="voice-select">Speech Voice</label>
+            <select id="voice-select" class="form-input">
+              <option value="">Loading system voices...</option>
+            </select>
+          </div>
+
+          <div class="slider-row">
+            <div class="control-group slider-group">
+              <div class="slider-header">
+                <label for="rate-slider">Reading Speed</label>
+                <span id="rate-value" class="slider-val">1.0x</span>
+              </div>
+              <input type="range" id="rate-slider" min="0.5" max="1.5" step="0.1" value="0.9">
+            </div>
+
+            <div class="control-group slider-group">
+              <div class="slider-header">
+                <label for="pitch-slider">Voice Pitch</label>
+                <span id="pitch-value" class="slider-val">1.0</span>
+              </div>
+              <input type="range" id="pitch-slider" min="0.5" max="1.5" step="0.1" value="1.0">
+            </div>
+          </div>
+
+          <div class="control-group slider-group">
+            <div class="slider-header">
+              <label for="voice-volume-slider">Narrator Volume</label>
+              <span id="voice-volume-value" class="slider-val">100%</span>
+            </div>
+            <input type="range" id="voice-volume-slider" min="0" max="1" step="0.05" value="0.8">
+          </div>
+        </div>
+
+        <!-- Column 2: Ambient Atmosphere Soundscapes (Web Audio synthesised!) -->
+        <div class="drawer-section ambient-section">
+          <h4>Ambient Sleep Soundscapes</h4>
+          <div class="ambient-mixers-list">
+            
+            <!-- Rain Volume -->
+            <div class="ambient-item">
+              <div class="ambient-meta">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25"/>
+                  <line x1="8" y1="16" x2="6" y2="22"/><line x1="12" y1="16" x2="10" y2="22"/><line x1="16" y1="16" x2="14" y2="22"/>
+                </svg>
+                <span>Gentle Rain</span>
+              </div>
+              <input type="range" id="ambient-rain" class="ambient-slider" min="0" max="1" step="0.05" value="0">
+              <span class="ambient-percentage" id="val-rain">0%</span>
+            </div>
+
+            <!-- Waves Volume -->
+            <div class="ambient-item">
+              <div class="ambient-meta">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M2 6c.6.5 1.2 1 2.5 1C7 7 8 5 10.5 5c2.5 0 3.5 2 6 2 2.5 0 3.5-2 6-2"/>
+                  <path d="M2 12c.6.5 1.2 1 2.5 1C7 13 8 11 10.5 11c2.5 0 3.5 2 6 2 2.5 0 3.5-2 6-2"/>
+                  <path d="M2 18c.6.5 1.2 1 2.5 1C7 19 8 17 10.5 17c2.5 0 3.5 2 6 2 2.5 0 3.5-2 6-2"/>
+                </svg>
+                <span>Ocean Waves</span>
+              </div>
+              <input type="range" id="ambient-waves" class="ambient-slider" min="0" max="1" step="0.05" value="0">
+              <span class="ambient-percentage" id="val-waves">0%</span>
+            </div>
+
+            <!-- Campfire Volume -->
+            <div class="ambient-item">
+              <div class="ambient-meta">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 3.5Z"/>
+                </svg>
+                <span>Cozy Campfire</span>
+              </div>
+              <input type="range" id="ambient-campfire" class="ambient-slider" min="0" max="1" step="0.05" value="0">
+              <span class="ambient-percentage" id="val-campfire">0%</span>
+            </div>
+
+            <!-- Brown Noise Volume -->
+            <div class="ambient-item">
+              <div class="ambient-meta">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/>
+                  <line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="12" y2="7"/><line x1="12" y1="17" x2="22" y2="17"/>
+                </svg>
+                <span>Brownian Noise</span>
+              </div>
+              <input type="range" id="ambient-brown" class="ambient-slider" min="0" max="1" step="0.05" value="0">
+              <span class="ambient-percentage" id="val-brown">0%</span>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Story Import Modal -->
+  <div id="import-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Import Custom Story</h3>
+        <button id="close-modal-btn" class="icon-btn" title="Close Modal">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="control-group">
+          <label for="import-title">Story Title</label>
+          <input type="text" id="import-title" placeholder="e.g., The Midnight Coffee Shop" class="form-input">
+        </div>
+        <div class="control-group">
+          <label for="import-subreddit">Subreddit / Source</label>
+          <input type="text" id="import-subreddit" placeholder="e.g., r/writingprompts" class="form-input" value="r/custom">
+        </div>
+        <div class="control-group">
+          <label for="import-author">Author / Username</label>
+          <input type="text" id="import-author" placeholder="e.g., dream_weaver" class="form-input" value="myself">
+        </div>
+        <div class="control-group">
+          <label for="import-text">Story Text (paragraphs or dialogue lines)</label>
+          <textarea id="import-text" placeholder="Type or paste your story here. Use blank lines to separate paragraphs. For Q&A threads, write it normally and we'll read it sequentially." class="form-input" rows="8"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button id="cancel-import-btn" class="btn btn-secondary">Cancel</button>
+          <button id="save-import-btn" class="btn btn-primary">Add to Library</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Sleep Timer Preset Input Modal -->
+  <div id="custom-timer-modal" class="modal-overlay hidden">
+    <div class="modal-card mini-modal">
+      <div class="modal-header">
+        <h3>Custom Sleep Timer</h3>
+        <button id="close-timer-modal-btn" class="icon-btn" title="Close Modal">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="control-group">
+          <label for="custom-timer-minutes">Minutes to Sleep</label>
+          <input type="number" id="custom-timer-minutes" min="1" max="480" value="20" class="form-input text-center">
+        </div>
+        <div class="modal-actions">
+          <button id="cancel-timer-btn" class="btn btn-secondary">Cancel</button>
+          <button id="save-timer-btn" class="btn btn-primary">Start Timer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="stories.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "reddit-lullaby",
+  "version": "1.0.0",
+  "description": "An app that reads popular Reddit stories out loud with AI-generated voice and relaxing ambient sounds for sleeping.",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx -y http-server -p 3000"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
