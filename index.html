@@ -64,17 +64,23 @@
       
       <!-- Left Column: Story Library -->
       <section class="panel stories-panel">
-        <h2 class="panel-title">Explore Stories</h2>
+        <h2 class="panel-title">
+          Explore Stories
+          <button id="fetch-reddit-btn" class="feed-refresh-btn" type="button">Refresh Reddit</button>
+        </h2>
         
         <!-- Subreddit/Category Filter -->
         <div class="category-filters">
           <button class="filter-btn active" data-category="all">All</button>
+          <button class="filter-btn" data-category="recommended">For You</button>
+          <button class="filter-btn" data-category="unheard">Unheard</button>
           <button class="filter-btn" data-subreddit="r/AskReddit">r/AskReddit</button>
           <button class="filter-btn" data-subreddit="r/nosleep">r/nosleep</button>
           <button class="filter-btn" data-subreddit="r/showerthoughts">r/showerthoughts</button>
           <button class="filter-btn" data-subreddit="r/explainlikeimfive">r/ELI5</button>
           <button class="filter-btn" data-subreddit="r/todayilearned">r/TIL</button>
         </div>
+        <div id="feed-status" class="feed-status">Loading live Reddit stories...</div>
 
         <!-- Stories List Grid -->
         <div id="stories-list" class="stories-grid">
@@ -90,6 +96,10 @@
           <div class="sub-badge" id="player-subreddit">r/AskReddit</div>
           <h2 id="player-title" class="player-story-title">Select a story to begin your journey</h2>
           <div class="player-author-meta" id="player-meta">By starlight_traveler • 5 min read</div>
+          <div class="story-memory-actions">
+            <button id="like-story-btn" class="memory-action-btn" type="button">More like this</button>
+            <button id="mark-heard-btn" class="memory-action-btn" type="button">Mark heard</button>
+          </div>
         </div>
 
         <!-- Cozy Visualizer Wave -->

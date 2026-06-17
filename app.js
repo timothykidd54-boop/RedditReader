@@ -228,6 +228,13 @@ const AppState = {
   selectedStory: null,
   activeCategory: "all",
   activeSubreddit: null,
+  heardStoryIds: new Set(),
+  subredditAffinity: {},
+  categoryAffinity: {},
+  customStories: [],
+  liveStoryIds: new Set(),
+  isFetchingReddit: false,
+  lastRedditApiMeta: null,
   
   // TTS State
   isPlaying: false,
@@ -262,6 +269,10 @@ const DOM = {
   stopBtn: document.getElementById("stop-btn"),
   prevBtn: document.getElementById("prev-btn"),
   nextBtn: document.getElementById("next-btn"),
+  likeStoryBtn: document.getElementById("like-story-btn"),
+  markHeardBtn: document.getElementById("mark-heard-btn"),
+  fetchRedditBtn: document.getElementById("fetch-reddit-btn"),
+  feedStatus: document.getElementById("feed-status"),
   
   // Timer Elements
   timerCountdown: document.getElementById("timer-countdown"),
@@ -315,6 +326,19 @@ const DOM = {
 
 // --- INITIALIZE SPEECH SYNTHESIS ---
 let synthVoices = [];
+const STORAGE_KEYS = {
+  memory: "reddit-lullaby-memory-v1",
+  customStories: "reddit-lullaby-custom-stories-v1"
+};
+const REDDIT_FEEDS = [
+  { subreddit: "AskReddit", category: "thoughtful", sort: "top", time: "week" },
+  { subreddit: "todayilearned", category: "educational", sort: "top", time: "week" },
+  { subreddit: "explainlikeimfive", category: "educational", sort: "top", time: "week" },
+  { subreddit: "NoStupidQuestions", category: "thoughtful", sort: "top", time: "week" },
+  { subreddit: "BestofRedditorUpdates", category: "mysterious", sort: "top", time: "month" }
+];
+const MIN_REDDIT_STORY_CHARS = 320;
+const MAX_REDDIT_STORY_CHARS = 7000;
 
 function loadVoices() {
   if (typeof speechSynthesis === 'undefined') return;
@@ -375,24 +399,260 @@ function formatTime(seconds) {
   return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
+function formatScore(score) {
+  if (!Number.isFinite(score)) return "";
+  if (score >= 1000) return `${(score / 1000).toFixed(score >= 10000 ? 0 : 1)}k`;
+  return String(score);
+}
+
+function escapeHTML(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function loadUserMemory() {
+  try {
+    const rawMemory = localStorage.getItem(STORAGE_KEYS.memory);
+    if (rawMemory) {
+      const parsed = JSON.parse(rawMemory);
+      AppState.heardStoryIds = new Set(parsed.heardStoryIds || []);
+      AppState.subredditAffinity = parsed.subredditAffinity || {};
+      AppState.categoryAffinity = parsed.categoryAffinity || {};
+    }
+
+    const rawCustomStories = localStorage.getItem(STORAGE_KEYS.customStories);
+    AppState.customStories = rawCustomStories ? JSON.parse(rawCustomStories) : [];
+    if (Array.isArray(AppState.customStories)) {
+      AppState.customStories
+        .filter(story => story && story.id && !storiesDatabase.some(existing => existing.id === story.id))
+        .reverse()
+        .forEach(story => storiesDatabase.unshift(story));
+    }
+  } catch (error) {
+    console.warn("Could not load saved listening memory:", error);
+  }
+}
+
+function saveUserMemory() {
+  const memoryPayload = {
+    heardStoryIds: Array.from(AppState.heardStoryIds),
+    subredditAffinity: AppState.subredditAffinity,
+    categoryAffinity: AppState.categoryAffinity
+  };
+  localStorage.setItem(STORAGE_KEYS.memory, JSON.stringify(memoryPayload));
+}
+
+function saveCustomStories() {
+  localStorage.setItem(STORAGE_KEYS.customStories, JSON.stringify(AppState.customStories));
+}
+
+function addInterestSignal(story, weight = 1) {
+  if (!story) return;
+  AppState.subredditAffinity[story.subreddit] = (AppState.subredditAffinity[story.subreddit] || 0) + weight;
+  AppState.categoryAffinity[story.category] = (AppState.categoryAffinity[story.category] || 0) + weight;
+  saveUserMemory();
+}
+
+function markStoryHeard(story, shouldRender = true) {
+  if (!story) return;
+  AppState.heardStoryIds.add(story.id);
+  saveUserMemory();
+  if (shouldRender) {
+    updateMemoryActions();
+    renderStoriesList();
+  }
+}
+
+function getStoryAffinity(story) {
+  const subredditScore = AppState.subredditAffinity[story.subreddit] || 0;
+  const categoryScore = AppState.categoryAffinity[story.category] || 0;
+  const noveltyBonus = AppState.heardStoryIds.has(story.id) ? -3 : 1;
+  return subredditScore * 2 + categoryScore + noveltyBonus;
+}
+
+function updateMemoryActions() {
+  if (!AppState.selectedStory) return;
+  const isHeard = AppState.heardStoryIds.has(AppState.selectedStory.id);
+  DOM.markHeardBtn.textContent = isHeard ? "Heard" : "Mark heard";
+  DOM.markHeardBtn.disabled = isHeard;
+}
+
+function updateFeedStatus(message, state = "idle") {
+  DOM.feedStatus.textContent = message;
+  DOM.feedStatus.dataset.state = state;
+}
+
+function redditUrlForFeed(feed) {
+  const sortPath = feed.sort === "hot" ? "hot" : "top";
+  const params = new URLSearchParams({
+    limit: "18",
+    raw_json: "1"
+  });
+  if (sortPath === "top") params.set("t", feed.time || "week");
+  return `https://www.reddit.com/r/${feed.subreddit}/${sortPath}.json?${params.toString()}`;
+}
+
+function isUsableRedditPost(post) {
+  const data = post?.data;
+  if (!data) return false;
+  const text = (data.selftext || "").trim();
+  if (!data.is_self || data.over_18 || data.stickied || data.pinned) return false;
+  if (!text || text === "[removed]" || text === "[deleted]") return false;
+  if (text.length < MIN_REDDIT_STORY_CHARS || text.length > MAX_REDDIT_STORY_CHARS) return false;
+  return true;
+}
+
+function paragraphsFromRedditText(text) {
+  return text
+    .replace(/\r/g, "")
+    .split(/\n{2,}/)
+    .map(paragraph => paragraph.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .slice(0, 10);
+}
+
+function normalizeRedditPost(post, feed) {
+  const data = post.data;
+  const permalink = data.permalink ? `https://www.reddit.com${data.permalink}` : `https://www.reddit.com/r/${feed.subreddit}`;
+  const paragraphs = paragraphsFromRedditText(data.selftext);
+  return {
+    id: `reddit-${data.name || data.id}`,
+    redditId: data.name || data.id,
+    title: data.title,
+    subreddit: `r/${feed.subreddit}`,
+    author: data.author || "reddit_user",
+    score: formatScore(data.score),
+    category: feed.category,
+    source: "reddit",
+    sourceUrl: permalink,
+    createdUtc: data.created_utc,
+    content: [
+      {
+        speaker: "Author",
+        text: data.title
+      },
+      ...paragraphs.map(text => ({
+        speaker: "Narrator",
+        text
+      }))
+    ]
+  };
+}
+
+async function fetchFeedStories(feed) {
+  const response = await fetch(redditUrlForFeed(feed), {
+    headers: {
+      Accept: "application/json"
+    }
+  });
+  if (!response.ok) {
+    throw new Error(`r/${feed.subreddit} returned ${response.status}`);
+  }
+  const payload = await response.json();
+  return (payload?.data?.children || [])
+    .filter(isUsableRedditPost)
+    .map(post => normalizeRedditPost(post, feed));
+}
+
+async function fetchStoriesFromLocalApi() {
+  const response = await fetch("/api/reddit");
+  if (!response.ok) {
+    throw new Error(`Local Reddit API returned ${response.status}`);
+  }
+  const payload = await response.json();
+  AppState.lastRedditApiMeta = payload;
+  return Array.isArray(payload.stories) ? payload.stories : [];
+}
+
+function mergeRedditStories(nextStories) {
+  const existingIds = new Set(storiesDatabase.map(story => story.id));
+  const freshStories = nextStories.filter(story => !existingIds.has(story.id));
+  storiesDatabase.unshift(...freshStories);
+  freshStories.forEach(story => AppState.liveStoryIds.add(story.id));
+  return freshStories;
+}
+
+async function loadLiveRedditStories({ autoSelect = false } = {}) {
+  if (AppState.isFetchingReddit) return;
+  AppState.isFetchingReddit = true;
+  DOM.fetchRedditBtn.disabled = true;
+  DOM.fetchRedditBtn.textContent = "Scanning...";
+  updateFeedStatus("Scanning Reddit top posts from relaxing starter subreddits...", "loading");
+
+  try {
+    let liveStories = [];
+    let usedBackend = false;
+
+    try {
+      liveStories = await fetchStoriesFromLocalApi();
+      usedBackend = true;
+    } catch (apiError) {
+      console.info("Local Reddit API unavailable, trying direct browser fetch:", apiError);
+      const results = await Promise.allSettled(REDDIT_FEEDS.map(fetchFeedStories));
+      liveStories = results.flatMap(result => result.status === "fulfilled" ? result.value : []);
+    }
+
+    const freshStories = mergeRedditStories(liveStories);
+    renderStoriesList();
+
+    if (freshStories.length > 0) {
+      const source = usedBackend ? "through the local Reddit API" : "directly from Reddit";
+      updateFeedStatus(`Loaded ${freshStories.length} live Reddit stories ${source}. Already-heard posts stay filtered out.`, "success");
+      if (autoSelect) selectStory(freshStories[0]);
+    } else if (liveStories.length > 0) {
+      updateFeedStatus("Reddit scan finished. No new unheard stories found this time.", "idle");
+    } else {
+      const needsOAuth = AppState.lastRedditApiMeta?.authMode === "anonymous";
+      updateFeedStatus(
+        needsOAuth
+          ? "Reddit blocked the anonymous scan. Add Reddit OAuth keys to .env.local, then refresh."
+          : "Reddit did not return readable posts or blocked the request. Using the local starter library for now.",
+        "warning"
+      );
+    }
+  } catch (error) {
+    console.warn("Reddit fetch failed:", error);
+    updateFeedStatus("Could not reach Reddit from this browser. Using the local starter library.", "warning");
+  } finally {
+    AppState.isFetchingReddit = false;
+    DOM.fetchRedditBtn.disabled = false;
+    DOM.fetchRedditBtn.textContent = "Refresh Reddit";
+  }
+}
+
 // Render the stories list based on filters
 function renderStoriesList() {
   DOM.storiesList.innerHTML = "";
   
-  const filtered = storiesDatabase.filter(story => {
-    const matchesCategory = AppState.activeCategory === "all" || story.category === AppState.activeCategory;
+  let filtered = storiesDatabase.filter(story => {
+    const matchesCategory = AppState.activeCategory === "all" ||
+      AppState.activeCategory === "recommended" ||
+      AppState.activeCategory === "unheard" ||
+      story.category === AppState.activeCategory;
     const matchesSubreddit = !AppState.activeSubreddit || story.subreddit === AppState.activeSubreddit;
-    return matchesCategory && matchesSubreddit;
+    const matchesHeard = AppState.activeCategory !== "unheard" || !AppState.heardStoryIds.has(story.id);
+    return matchesCategory && matchesSubreddit && matchesHeard;
   });
 
+  if (AppState.activeCategory === "recommended") {
+    filtered = filtered
+      .slice()
+      .sort((a, b) => getStoryAffinity(b) - getStoryAffinity(a));
+  }
+
   if (filtered.length === 0) {
-    DOM.storiesList.innerHTML = `<div class="reader-placeholder">No stories found in this category.</div>`;
+    DOM.storiesList.innerHTML = `<div class="reader-placeholder">No stories found here yet.</div>`;
     return;
   }
 
   filtered.forEach(story => {
     const card = document.createElement("div");
-    card.className = `story-card ${AppState.selectedStory?.id === story.id ? 'active' : ''}`;
+    const isHeard = AppState.heardStoryIds.has(story.id);
+    card.className = `story-card ${AppState.selectedStory?.id === story.id ? 'active' : ''} ${isHeard ? 'heard' : ''}`;
     
     // Estimate reading time (roughly 150 words per minute)
     let totalWords = 0;
@@ -400,11 +660,14 @@ function renderStoriesList() {
     const readTime = Math.ceil(totalWords / 150);
 
     card.innerHTML = `
-      <span class="story-card-subreddit">${story.subreddit}</span>
-      <h3 class="story-card-title">${story.title}</h3>
+      <div class="story-card-topline">
+        <span class="story-card-subreddit">${escapeHTML(story.subreddit)}</span>
+        ${isHeard ? '<span class="story-status-pill">Heard</span>' : '<span class="story-status-pill new">New</span>'}
+      </div>
+      <h3 class="story-card-title">${escapeHTML(story.title)}</h3>
       <div class="story-card-meta">
-        <span>u/${story.author}</span>
-        <span>~${readTime} min read</span>
+        <span>u/${escapeHTML(story.author)}</span>
+        <span>${story.source === "reddit" && story.score ? `${escapeHTML(story.score)} pts` : `~${readTime} min read`}</span>
       </div>
     `;
 
@@ -418,6 +681,7 @@ function selectStory(story) {
   stopTTS();
   
   AppState.selectedStory = story;
+  addInterestSignal(story, 0.25);
   
   // Highlight active card
   document.querySelectorAll(".story-card").forEach(card => card.classList.remove("active"));
@@ -429,7 +693,9 @@ function selectStory(story) {
   let totalWords = 0;
   story.content.forEach(p => totalWords += p.text.split(" ").length);
   const readTime = Math.ceil(totalWords / 150);
-  DOM.playerMeta.textContent = `By u/${story.author} • ${readTime} min read`;
+  DOM.playerMeta.textContent = story.source === "reddit"
+    ? `By u/${story.author} • ${story.score || "live"} pts • ${readTime} min read`
+    : `By u/${story.author} • ${readTime} min read`;
 
   // Parse paragraphs into sentences
   AppState.sentences = [];
@@ -466,6 +732,7 @@ function selectStory(story) {
   DOM.stopBtn.disabled = false;
   DOM.prevBtn.disabled = false;
   DOM.nextBtn.disabled = false;
+  updateMemoryActions();
 }
 
 // Jump to a specific sentence in the story
@@ -547,6 +814,7 @@ function playTTS() {
       if (AppState.currentSentenceIdx < AppState.sentences.length) {
         playTTS();
       } else {
+        markStoryHeard(AppState.selectedStory);
         stopTTS();
       }
     }
@@ -808,6 +1076,23 @@ function setupEventListeners() {
     }
   });
 
+  DOM.likeStoryBtn.addEventListener("click", () => {
+    addInterestSignal(AppState.selectedStory, 3);
+    DOM.likeStoryBtn.textContent = "Tuned";
+    window.setTimeout(() => {
+      DOM.likeStoryBtn.textContent = "More like this";
+    }, 1200);
+    renderStoriesList();
+  });
+
+  DOM.markHeardBtn.addEventListener("click", () => {
+    markStoryHeard(AppState.selectedStory);
+  });
+
+  DOM.fetchRedditBtn.addEventListener("click", () => {
+    loadLiveRedditStories({ autoSelect: false });
+  });
+
   // 4. Timer Preset Selection
   DOM.presetButtons.forEach(btn => {
     btn.addEventListener("click", () => {
@@ -951,6 +1236,8 @@ function setupEventListeners() {
 
     // Add to local database
     storiesDatabase.unshift(newStory);
+    AppState.customStories.unshift(newStory);
+    saveCustomStories();
     
     // Close modal and refresh list
     DOM.importModal.classList.add("hidden");
@@ -964,6 +1251,8 @@ function setupEventListeners() {
 
 // --- INITIAL BUILD SETUP ---
 function initApp() {
+  loadUserMemory();
+
   // Disable media player buttons until a story is selected
   DOM.playBtn.disabled = true;
   DOM.stopBtn.disabled = true;
@@ -980,6 +1269,8 @@ function initApp() {
   if (storiesDatabase.length > 0) {
     selectStory(storiesDatabase[0]);
   }
+
+  loadLiveRedditStories({ autoSelect: true });
 }
 
 // Start app on DOM loaded

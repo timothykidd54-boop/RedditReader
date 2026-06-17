@@ -372,6 +372,29 @@ body {
   align-items: center;
 }
 
+.feed-refresh-btn {
+  font-family: var(--font-family);
+  border: 1px solid rgba(204, 164, 59, 0.28);
+  border-radius: 999px;
+  background: rgba(204, 164, 59, 0.08);
+  color: var(--color-moon-yellow);
+  padding: 0.38rem 0.72rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.feed-refresh-btn:hover:not(:disabled) {
+  background: rgba(204, 164, 59, 0.16);
+  border-color: rgba(204, 164, 59, 0.48);
+}
+
+.feed-refresh-btn:disabled {
+  cursor: progress;
+  opacity: 0.68;
+}
+
 /* ==========================================================================
    STORY DISCOVERY / FILTER
    ========================================================================== */
@@ -382,6 +405,22 @@ body {
   padding-bottom: 0.75rem;
   margin-bottom: 1rem;
   scrollbar-width: thin;
+}
+
+.feed-status {
+  min-height: 1.1rem;
+  margin: -0.35rem 0 0.85rem;
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.feed-status[data-state="success"] {
+  color: var(--color-glow-green);
+}
+
+.feed-status[data-state="warning"] {
+  color: var(--color-moon-yellow);
 }
 
 .filter-btn {
@@ -433,6 +472,10 @@ body {
   gap: 0.4rem;
 }
 
+.story-card.heard {
+  opacity: 0.72;
+}
+
 .story-card:hover {
   background: var(--bg-glass-active);
   border-color: rgba(255, 255, 255, 0.1);
@@ -452,6 +495,30 @@ body {
   color: var(--color-indigo);
   letter-spacing: 0.5px;
   text-transform: uppercase;
+}
+
+.story-card-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.story-status-pill {
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.story-status-pill.new {
+  color: var(--color-glow-green);
+  border-color: rgba(74, 222, 128, 0.22);
+  background: rgba(74, 222, 128, 0.08);
 }
 
 .story-card-title {
@@ -517,6 +584,39 @@ body {
 .player-author-meta {
   font-size: 0.78rem;
   color: var(--color-text-muted);
+}
+
+.story-memory-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.memory-action-btn {
+  font-family: var(--font-family);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text-main);
+  padding: 0.42rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.memory-action-btn:hover:not(:disabled) {
+  border-color: rgba(204, 164, 59, 0.45);
+  color: var(--color-moon-yellow);
+  background: rgba(204, 164, 59, 0.1);
+}
+
+.memory-action-btn:disabled {
+  cursor: default;
+  color: var(--color-text-dim);
+  opacity: 0.8;
 }
 
 /* Wave Visualizer Animation */
